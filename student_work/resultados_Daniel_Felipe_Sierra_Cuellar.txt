@@ -1,0 +1,118 @@
+EVALUACION - Data Stream Processor
+============================================================
+Estudiante : Daniel Felipe Sierra Cuellar
+Fecha      : 2026-09-21 19:53:13
+Python     : 3.12.13 (Linux)
+Evaluador  : v1.1
+Clase      : DataProcessor (modulo __main__)
+
+== Interfaz y restricciones ==
+
+[PASS ] Define add, process_next, undo, pending y current_value
+[PASS ] Se puede crear DataProcessor() sin argumentos
+[PASS ] __init__ crea una ArrayQueue, un ArrayStack y una list
+[PASS ] No sustituye Queue/Stack por deque u otra estructura
+[PASS ] ArrayQueue y ArrayStack son las del curso (no reimplementadas)
+
+   Interfaz y restricciones: 5/5 OK
+
+== Pruebas obligatorias (1-17) ==
+
+[PASS ] 1. pending() sobre un procesador vacio
+[PASS ] 2. Agregar un registro
+[PASS ] 3. Agregar varios registros
+[PASS ] 4. Procesamiento FIFO
+[PASS ] 5. Procesar un registro
+[PASS ] 6. Procesar varios registros
+[PASS ] 7. Actualizar una variable existente
+[PASS ] 8. Consultar el valor actual
+[PASS ] 9. Realizar un undo()
+[PASS ] 10. Varios undo() consecutivos
+[PASS ] 11. process_next() con la Queue vacia -> Empty
+[PASS ] 12. undo() con historial vacio -> Empty
+[PASS ] 13. Deshacer la creacion de un dato que no existia
+[PASS ] 14. Varios cambios sobre la misma variable
+[PASS ] 15. add() con formato incorrecto
+[PASS ] 16. add() con value no numerico
+[PASS ] 17. current_value() de un sensor/variable nunca procesado -> KeyError
+
+   Pruebas obligatorias (1-17): 17/17 OK
+
+== Casos borde adicionales ==
+
+[PASS ] undo de una creacion entre actualizaciones de otra variable
+[PASS ] Sensores y variables distintos no se mezclan
+[PASS ] Acepta int y float; sigue funcionando tras un Empty
+
+   Casos borde adicionales: 3/3 OK
+
+== Bonus: redo() (opcional) ==
+
+   No implementado (no aplica).
+
+== RESUMEN ==
+
+   Interfaz y restricciones          5/ 5 OK   0 fallo(s)
+   Pruebas obligatorias (1-17)      17/17 OK   0 fallo(s)
+   Casos borde adicionales           3/ 3 OK   0 fallo(s)
+
+   Total sin bonus: 25/25 OK
+
+== CODIGO DE LA CLASE ==
+
+class DataProcessor:
+    def __init__(self):
+        self.queue = ArrayQueue()
+        self.stack = ArrayStack()
+        self.lista = []
+
+    def add(self, record):
+        if not isinstance(record, (tuple, list)) or len(record) != 3:
+            raise ValueError("El registro debe ser una tupla o lista de 3 elementos: (sensor, variable, valor).")
+        
+        if not isinstance(record[2], (int, float)):
+            raise TypeError("El valor del registro debe ser numérico (int o float).")
+
+        self.queue.enqueue(record)
+
+    def process_next(self):
+        record = self.queue.dequeue()
+        sensor, variable, _ = record
+
+        indice = -1
+        for i in range(len(self.lista)):
+            if self.lista[i][0] == sensor and self.lista[i][1] == variable:
+                indice = i
+                break
+
+        if indice == -1:
+            self.stack.push((len(self.lista), None))
+            self.lista.append(record)
+        else:
+            self.stack.push((indice, self.lista[indice]))
+            self.lista[indice] = record
+
+        return record
+
+    def undo(self):
+        cambio = self.stack.pop()
+        indice, registro_viejo = cambio
+
+        if registro_viejo is None:
+            self.lista.pop()
+        else:
+            self.lista[indice] = registro_viejo
+
+    def pending(self):
+        return len(self.queue)
+
+    def current_value(self, sensor, variable):
+        for i in range(len(self.lista)):
+            if self.lista[i][0] == sensor and self.lista[i][1] == variable:
+                return self.lista[i][2]
+
+        raise KeyError((sensor, variable))
+
+== INTEGRIDAD ==
+SHA256 codigo de la clase : 5d842dd8b0700d2d89cfdfe0c31e97846ecbbc85f42d6b6773d529de463b71ee
+SHA256 de este informe    : 0e1bacef8162bffdd11d2f9ccd21780c527ebc1da76d30676c68fd6d5893dccb
